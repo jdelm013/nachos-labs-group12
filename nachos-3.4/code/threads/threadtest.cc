@@ -11,7 +11,7 @@
 
 #include "copyright.h"
 #include "system.h"
-#include "synch.h" 
+#include "synch.h"
 
 // testnum is set in main.cc
 int testnum = 1;
@@ -27,34 +27,32 @@ int testnum = 1;
 
 #if defined(CHANGED) && defined(THREADS)
 
-int SharedVariable;
 int numThreadsActive = 0;
+Semaphore *mutex = new Semaphore("mutex", 1);
 
+int SharedVariable;
 void SimpleThread(int which)
 {
     int num, val;
-    for (num = 0; num < 4; num++)
+    for (num = 0; num < 5; num++)
     {
-        //entry
-        #ifdef HW1_SEMAPHORES
-        Semaphore *mutex = new Semaphore("mutex", 1);
-        mutex->P();
-        #endif
+        // Entry section
+        mutex->P(); // Wait for semaphore
 
+        // Critical section
         val = SharedVariable;
         printf("*** thread %d sees value %d\n", which, val);
         currentThread->Yield();
         SharedVariable = val + 1;
-        currentThread->Yield();
+    
+        // Exit section
+        mutex->V(); // Signal sempahore
 
-        //exit
-        #ifdef HW1_SEMAPHORES
-        mutex->V();
-        #endif
+        currentThread->Yield();
     }
 
-    // Barrier
     numThreadsActive--;
+
     while (numThreadsActive > 0)
     {
         currentThread->Yield();
@@ -102,22 +100,18 @@ void ThreadTest1()
 
 #if defined(CHANGED) && defined(THREADS)
 
-//int numThreadsActive; // used to implement barrier upon completion
-
 void ThreadTest(int n)
 {
-    DEBUG('t', "Entering SimpleTest");
+    DEBUG('t', "Entering ThreadTest");
     Thread *t;
-  //  numThreadsActive = n;
-    //printf("NumthreadsActive = %d\n", numThreadsActive);
+    numThreadsActive = n;
+    printf("NumthreadsActive = %d\n", numThreadsActive);
 
-    for (int i = 0; i < n; i++)
+    for (int i = 1; i < n; i++)
     {
-        numThreadsActive++;
         t = new Thread("forked thread");
         t->Fork(SimpleThread, i);
     }
-    printf("NumthreadsActive = %d\n", numThreadsActive);
     SimpleThread(0);
 }
 

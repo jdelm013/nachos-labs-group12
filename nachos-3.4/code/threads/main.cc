@@ -92,6 +92,12 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
+
+	#if defined(CHANGED) 
+	// set default to 4 threads
+		testnum = 4;
+	#endif	
+
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
       argCount = 1;
       switch (argv[0][1]) {
@@ -100,13 +106,13 @@ main(int argc, char **argv)
         argCount++;
         break;
       default:
-        testnum = 1;
+	    //testnum = 1; 		
         break;
       }
     }
 	#if defined(CHANGED) && defined(THREADS)
-		printf("Starting ThreadTest with 4 threads\n");
-		ThreadTest(4);
+		printf("Starting ThreadTest with %d threads\n", testnum);
+		ThreadTest(testnum);
 	#else
     	ThreadTest();
 	#endif
