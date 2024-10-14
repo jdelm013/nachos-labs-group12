@@ -127,9 +127,56 @@ void Lock::Release() {
     held = false;
     (void) interrupt->SetLevel(oldLevel);
 }
+bool Lock::isHeldByCurrentThread() {
+    // true if the current thread
+    // holds this lock.  Useful for
+    // checking in Release, and in
+    // Condition variable ops below.
+    return held;
+}	
 
-Condition::Condition(const char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+
+Condition::Condition(const char* debugName) { 
+    name = debugName;
+    queue = new List;
+}
+Condition::~Condition() { 
+    delete queue;
+}
+void Condition::Wait(Lock* conditionLock) { 
+    // check if calling thread holds the lock
+    ASSERT(conditionLock->isHeldByCurrentThread());
+
+    // release the lock
+    conditionLock->Release();
+
+    // put self in the queue of waiting threads
+    queue->Append((void *)currentThread);
+
+    // reacquire the lock
+    conditionLock->Acquire();
+    
+}
+void Condition::Signal(Lock* conditionLock) { 
+    // check if calling thread holds the lock
+    ASSERT(conditionLock->isHeldByCurrentThread());
+
+    // dequeue one of the threas in the queue
+    Thread *thread = (Thread *)queue->Remove();
+
+    // if thread exists, wake it up
+    if (thread != NULL) {
+        scheduler->ReadyToRun(thread);
+    }
+}
+void Condition::Broadcast(Lock* conditionLock) { 
+    // check if calling thread holds the lock
+    ASSERT(conditionLock->isHeldByCurrentThread());
+
+    // dequeue all threads in the queue
+    Thread *thread;
+    while (!queue->IsEmpty()) {
+        thread = (Thread *)queue->Remove();
+        scheduler->ReadyToRun(thread);
+    }
+}

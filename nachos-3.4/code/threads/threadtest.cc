@@ -28,7 +28,12 @@ int testnum = 1;
 #if defined(CHANGED) && defined(THREADS)
 
 int numThreadsActive = 0;
+
+#ifdef HW1_SEMAPHORES
 Semaphore *mutex = new Semaphore("mutex", 1);
+#elif HW1_LOCKS
+Lock *mutex = new Lock("mutex");
+#endif
 
 int SharedVariable;
 void SimpleThread(int which)
@@ -37,7 +42,11 @@ void SimpleThread(int which)
     for (num = 0; num < 5; num++)
     {
         // Entry section
+        #ifdef HW1_SEMAPHORES
         mutex->P(); // Wait for semaphore
+        #elif HW1_LOCKS
+        mutex->Acquire(); // Acquire lock
+        #endif
 
         // Critical section
         val = SharedVariable;
@@ -46,7 +55,11 @@ void SimpleThread(int which)
         SharedVariable = val + 1;
     
         // Exit section
+        #ifdef HW1_SEMAPHORES
         mutex->V(); // Signal sempahore
+        #elif HW1_LOCKS
+        mutex->Release(); // Release lock
+        #endif
 
         currentThread->Yield();
     }

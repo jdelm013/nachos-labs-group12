@@ -61,12 +61,14 @@ extern int testnum;
 
 #if defined(CHANGED) && defined(THREADS)
 extern void ThreadTest(int), Copy(char *unixFile, char *nachosFile);
+extern void Ping();
 #else 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 #endif 
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
+
 
 //----------------------------------------------------------------------
 // main
@@ -114,8 +116,13 @@ main(int argc, char **argv)
 		printf("Starting ThreadTest with %d threads\n", testnum);
 		ThreadTest(testnum);
 	#else
-    	ThreadTest();
+		ThreadTest();
 	#endif
+
+	#if defined(CHANGED) && defined(HW1_CONDITION)
+		Ping();
+	#endif
+	
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
