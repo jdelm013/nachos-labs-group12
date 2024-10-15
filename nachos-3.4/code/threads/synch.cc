@@ -144,14 +144,23 @@ Condition::~Condition() {
     delete queue;
 }
 void Condition::Wait(Lock* conditionLock) { 
+
     // check if calling thread holds the lock
     ASSERT(conditionLock->isHeldByCurrentThread());
+
+    // Atomically release the lock and go to sleep
+    IntStatus oldLevel = interrupt->SetLevel(IntOff); 
 
     // release the lock
     conditionLock->Release();
 
     // put self in the queue of waiting threads
     queue->Append((void *)currentThread);
+    // Put the current thread to sleep
+    currentThread->Sleep();  
+    
+    // Re-enable interrupt
+    (void)interrupt->SetLevel(oldLevel);  
 
     // reacquire the lock
     conditionLock->Acquire();
@@ -161,22 +170,37 @@ void Condition::Signal(Lock* conditionLock) {
     // check if calling thread holds the lock
     ASSERT(conditionLock->isHeldByCurrentThread());
 
-    // dequeue one of the threas in the queue
-    Thread *thread = (Thread *)queue->Remove();
+    // Disable interrupts for atomicity
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);  
 
-    // if thread exists, wake it up
-    if (thread != NULL) {
-        scheduler->ReadyToRun(thread);
+    if (!queue->IsEmpty()) {
+        // dequeue one of the threas in the queue
+        Thread *thread = (Thread *)queue->Remove();
+
+        // if thread exists, wake it up
+        if (thread != NULL) {
+            scheduler->ReadyToRun(thread);
+        }
     }
+    
+    // Re-enable interrupts
+    (void)interrupt->SetLevel(oldLevel);  
+    
 }
 void Condition::Broadcast(Lock* conditionLock) { 
     // check if calling thread holds the lock
     ASSERT(conditionLock->isHeldByCurrentThread());
 
+    // Disable interrupts for atomicity
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);  
+    
     // dequeue all threads in the queue
     Thread *thread;
     while (!queue->IsEmpty()) {
         thread = (Thread *)queue->Remove();
         scheduler->ReadyToRun(thread);
     }
+
+    // Re-enable interrupts
+    (void)interrupt->SetLevel(oldLevel);  
 }

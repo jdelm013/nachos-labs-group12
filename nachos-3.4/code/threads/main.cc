@@ -61,7 +61,11 @@ extern int testnum;
 
 #if defined(CHANGED) && defined(THREADS)
 extern void ThreadTest(int), Copy(char *unixFile, char *nachosFile);
-extern void Ping();
+//extern void Ping();
+extern void CvPing(void) ;	
+extern void SemaphorePing();
+extern void LockTest();
+extern void ElevatorTest(int numFloors, int numPersons);
 #else 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 #endif 
@@ -115,12 +119,15 @@ main(int argc, char **argv)
 	#if defined(CHANGED) && defined(THREADS)
 		printf("Starting ThreadTest with %d threads\n", testnum);
 		ThreadTest(testnum);
+		//ElevatorTest(5, 10);
 	#else
 		ThreadTest();
 	#endif
 
 	#if defined(CHANGED) && defined(HW1_CONDITION)
-		Ping();
+		//LockTest();
+		//SemaphorePing();
+		CvPing();
 	#endif
 	
 #endif
