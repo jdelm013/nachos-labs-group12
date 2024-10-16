@@ -51,23 +51,26 @@ void ELEVATOR::start() {
             this->hailed->Wait(this->elevatorLock);
         }
 
+        // elevator goes up
         for (int i = 0; i < this->numFloors; ++i) {
             this->currentFloor = i;
-            printf("Elevator arrives at floor %d\n", this->currentFloor + 1);
+            printf("Elevator arrives on floor %d\n", this->currentFloor + 1);
 
             while (this->waitingPersons[this->currentFloor] > 0 && this->occupancy < this->maxOccupancy) {
                 this->entering[this->currentFloor]->Signal(this->elevatorLock);
                 this->waitingPersons[this->currentFloor]--;
                 this->personsWaiting--;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate person entering
             }
 
             this->leaving[this->currentFloor]->Broadcast(this->elevatorLock);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
         }
 
+        // elevator goes down   
         for (int i = this->numFloors - 1; i >= 0; --i) {
             this->currentFloor = i;
-            printf("Elevator arrives at floor %d\n", this->currentFloor + 1);
+            printf("Elevator arrives on floor %d\n", this->currentFloor + 1);
 
             this->leaving[this->currentFloor]->Broadcast(this->elevatorLock);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
@@ -84,7 +87,7 @@ void ELEVATOR::Hail(Person *p) {
     this->waitingPersons[p->atFloor - 1]++;
     this->personsWaiting++;
 
-    printf("Person %d hails the elevator at floor %d to go to floor %d\n", p->id, p->atFloor, p->toFloor);
+    printf("Person %d wants to go to floor %d from floor %d\n", p->id, p->toFloor, p->atFloor);
 
     this->hailed->Signal(this->elevatorLock);
 
