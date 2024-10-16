@@ -2,7 +2,8 @@
 #include "elevator.h"
 #include "system.h"
 #include <cstdio>
-#include <thread>       // std::this_thread::sleep_for
+// #include <thread>       // std::this_thread::sleep_for
+// caused exception on ocelot, not locally
 
 ELEVATOR *e;
 int nextPersonID = 1;
@@ -60,11 +61,11 @@ void ELEVATOR::start() {
                 this->entering[this->currentFloor]->Signal(this->elevatorLock);
                 this->waitingPersons[this->currentFloor]--;
                 this->personsWaiting--;
-                std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate person entering
+                //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate person entering
             }
 
             this->leaving[this->currentFloor]->Broadcast(this->elevatorLock);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
+            //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
         }
 
         // elevator goes down   
@@ -73,7 +74,7 @@ void ELEVATOR::start() {
             printf("Elevator arrives on floor %d\n", this->currentFloor + 1);
 
             this->leaving[this->currentFloor]->Broadcast(this->elevatorLock);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
+            //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate delay
         }
 
         this->elevatorLock->Release();
