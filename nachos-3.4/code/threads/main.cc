@@ -119,7 +119,7 @@ main(int argc, char **argv)
 	#if defined(CHANGED) && defined(THREADS)
 		printf("Starting ThreadTest with %d threads\n", testnum);
 		ThreadTest(testnum);
-		//ElevatorTest(5, 10);
+		ElevatorTest(5, 10);
 	#else
 		ThreadTest();
 	#endif
@@ -127,7 +127,7 @@ main(int argc, char **argv)
 	#if defined(CHANGED) && defined(HW1_CONDITION)
 		//LockTest();
 		//SemaphorePing();
-		CvPing();
+		//CvPing();
 	#endif
 	
 #endif
