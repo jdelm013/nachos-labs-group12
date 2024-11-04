@@ -79,8 +79,15 @@ class Thread {
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     int machineState[MachineStateSize];  // all registers except for stackTop
+    int pid; // Add this line to store the PID
 
   public:
+    // Add a method to set the PID
+    void SetPid(int id) { pid = id; }
+
+    // Add a method to get the PID
+    int GetPid() { return pid; }
+
     Thread(const char* debugName);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
