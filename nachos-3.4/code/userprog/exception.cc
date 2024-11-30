@@ -63,18 +63,18 @@ void ExceptionHandler(ExceptionType which)
     int pid = currentThread->GetPid();
     int status = 0;
 
-    const char *exceptionMsg = "System Call: [%d] invoked [%d]\n";
+    const char *exceptionMsg = "System Call: [%d] invoked [%s]\n";
 
     if (which == SyscallException) {
         switch (type) {
             case SC_Halt:
-                printf(exceptionMsg, pid, type);
+                printf(exceptionMsg, pid, "Halt");
                 DEBUG('a', "Shutdown, initiated by user program.\n");
                 interrupt->Halt();
                 break;
 
             case SC_Exit:
-                printf(exceptionMsg, pid, type);
+                printf(exceptionMsg, pid, "Exit");
                 DEBUG('a', "Exit, initiated by user program.\n");
                 status = machine->ReadRegister(4);
                 doExit(status, pid);
