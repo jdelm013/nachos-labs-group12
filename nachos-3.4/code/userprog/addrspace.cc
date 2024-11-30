@@ -89,7 +89,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
+	pageTable[i].physicalPage = mm->AllocatePage();
 	pageTable[i].valid = TRUE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
@@ -117,6 +117,57 @@ AddrSpace::AddrSpace(OpenFile *executable)
     }
 
 }
+
+TranslationEntry* AddrSpace::GetPageTable(){
+    return pageTable;
+}
+
+unsigned int AddrSpace::GetNumPages() {
+    return numPages;
+}
+
+//----------------------------------------------------------------------
+// AddrSpace::AddrSpace
+// 	Create a copy of an existing AddrSpace
+//----------------------------------------------------------------------
+
+
+AddrSpace::AddrSpace(AddrSpace* space)
+{
+
+    // find how big source addr space is 
+    unsigned int n = space->GetNumPages();
+
+    // Acquire mmLock
+    mmLock->Acquire();
+
+    //check if eough free mem to make copy, if not, fail
+    ASSERT(n <= mm->GetFreePageCount());
+
+    // create a new page table of same size as source addr space
+    pageTable = new TranslationEntry[n];
+
+    // make a copy of the PTEs but allocate new physical pages
+    TranslationEntry* ppt = space->GetPageTable();
+
+    for (int i = 0; i < numPages; i++) {
+	    pageTable[i].virtualPage = ppt[i].virtualPage;
+	    pageTable[i].physicalPage = mm->AllocatePage();
+	    pageTable[i].valid = ppt[i].valid;
+	    pageTable[i].use = ppt[i].use;
+	    pageTable[i].dirty = ppt[i].dirty;
+	    pageTable[i].readOnly = ppt[i].readOnly;  
+
+        bcopy(  &(machine->mainMemory[ppt[i].physicalPage*128]),
+                &(machine->mainMemory[pageTable[i].physicalPage*128]),
+                128);
+
+    }
+
+    mmLock->Release();
+   
+}
+
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
