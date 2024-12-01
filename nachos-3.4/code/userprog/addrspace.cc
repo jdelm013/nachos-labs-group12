@@ -150,7 +150,7 @@ AddrSpace::AddrSpace(AddrSpace* space)
     // make a copy of the PTEs but allocate new physical pages
     TranslationEntry* ppt = space->GetPageTable();
 
-    for (int i = 0; i < numPages; i++) {
+    for (unsigned int i = 0; i < numPages; i++) {
 	    pageTable[i].virtualPage = ppt[i].virtualPage;
 	    pageTable[i].physicalPage = mm->AllocatePage();
 	    pageTable[i].valid = ppt[i].valid;

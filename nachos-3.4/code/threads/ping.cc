@@ -28,8 +28,8 @@ void CvPing()
     pingLock = new Lock("cv");
     cv = new Condition("ping pong");
 
-    char *ping = "ping";
-    char *pong = "pong";
+    const char *ping = "ping";
+    const char *pong = "pong";
 
     Thread *t = new Thread(ping);
     t->Fork(PingPong, (int) ping);
@@ -58,8 +58,8 @@ void SPingPong(int which)
 
 void SemaphorePing()
 {
-    char *ping = "ping";
-    char *pong = "pong";
+    const char *ping = "ping";
+    const char *pong = "pong";
 
     Thread *t = new Thread(ping);
     t->Fork(SPingPong, (int) ping);
