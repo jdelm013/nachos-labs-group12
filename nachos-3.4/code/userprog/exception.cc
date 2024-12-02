@@ -57,6 +57,16 @@ void doExit(int status, int pid) {
     printf("Process [%d] exits with [%d]\n", pid, status);
     delete currentThread->space; 
     currentThread->Finish();
+    currentThread->space->pcb->exitStatus = status;
+
+    // Manage PCB memory as a parent
+    PCB* pcb = currentThread->space->pcb;
+
+    pcb->DeleteExitedChildrenSetParentNull();
+    
+    if(pcb->parent != NULL) {
+        delete pcb;
+    }
 
 }
 
@@ -146,10 +156,15 @@ int doKill(int pid) {
 }
 
 int doExec(char* filename) {
-    OpenFile* executable = fileSystem->Open(filename);
+
+    OpenFile *executable = fileSystem->Open(filename);
+
     if (executable == NULL) {
+        printf("Unable to open file %s\n", filename);
         return -1;
     }
+
+    printf("Loaded file %s\n", filename);
 
     AddrSpace* space = new AddrSpace(executable);
     if (!space->valid) {
@@ -157,12 +172,16 @@ int doExec(char* filename) {
         return -1;
     }
     
+    printf("setup addr space\n");
+
     delete executable;
 
     PCB* pcb = pcbManager->AllocatePCB();
     space->pcb = pcb;
     pcb->thread = currentThread;
     pcb->parent = currentThread->space->pcb->parent;
+
+    printf("Got here\n");
 
     // since we are replacing the addr space must remove it
     delete currentThread->space;
@@ -171,9 +190,35 @@ int doExec(char* filename) {
     space->InitRegisters();
     space->RestoreState();
 
+    // Exec Program: [2] loading [../test/memory]
+    printf("Exec Program: [%d] loading [%s]\n", pcb->pid(), filename);
+
     machine->Run();
 
     return 0;
+}
+
+int doJoin(int pid) {
+    PCB* pcb = pcbManager->GetPCB(pid);
+    if (pcb == NULL) {
+        return -1;
+    }
+
+    // confirm pcb is a child of current process
+    PCB* currentPCB = currentThread->space->pcb;
+    if (currentPCB->parent != pcb) {
+        return -1;
+    }
+
+    while(!pcb->HasExited()) {
+        currentThread->Yield();
+    }   
+
+    // return exit status of child
+    int status =  pcb->exitStatus;
+    delete pcb;
+
+    return status;
 }
 
 void incrementPC() {
@@ -248,7 +293,7 @@ void ExceptionHandler(ExceptionType which)
                 incrementPC();
                 break;
 
-            case SC_Kill: { // must be enclosed in a block bc of variable declarations
+            case SC_Kill: { 
                 printf(exceptionMsg, pid, "Kill");
                 DEBUG('a', "Kill, initiated by user program.\n");
                 int result = doKill(machine->ReadRegister(4));
@@ -257,7 +302,7 @@ void ExceptionHandler(ExceptionType which)
                 break;
             }
 
-            case SC_Fork: { // must be enclosed in a block bc of variable declarations
+            case SC_Fork: { 
                 printf(exceptionMsg, pid, "Fork");
                 DEBUG('a', "Fork, initiated by user program.\n");
                 int funcAddr = machine->ReadRegister(4);
@@ -271,7 +316,7 @@ void ExceptionHandler(ExceptionType which)
                 break;
             }
 
-            case SC_Exec: { // must be enclosed in a block bc of variable declarations
+            case SC_Exec: { 
                 printf(exceptionMsg, pid, "Exec");
                 DEBUG('a', "Exec, initiated by user program.\n");
                 int virtAddr = machine->ReadRegister(4);
@@ -281,6 +326,18 @@ void ExceptionHandler(ExceptionType which)
                 machine->WriteRegister(2, result);
                 incrementPC();
                 break;
+            }
+
+            case SC_Join: {
+                printf(exceptionMsg, pid, "Join");
+                DEBUG('a', "Join, initiated by user program.\n");
+                int joinPid = machine->ReadRegister(4);
+                int result = doJoin(joinPid);
+                
+                machine->WriteRegister(2, result);
+                incrementPC();
+                break;
+
             }
 
 

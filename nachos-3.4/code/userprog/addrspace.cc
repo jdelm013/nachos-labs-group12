@@ -159,6 +159,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		// 	noffH.initData.size, noffH.initData.inFileAddr);
     }
 
+    //Loaded Program: [400] code | [16] data | [0] bss
+    printf("Loaded Program: [%d] code | [%d] data | [%d] bss\n", noffH.code.size, noffH.initData.size, noffH.uninitData.size);
+
 }
 
 TranslationEntry* AddrSpace::GetPageTable(){
@@ -271,7 +274,11 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+    // save the page table
+    machine->pageTable = pageTable;
+    machine->pageTableSize = numPages;
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState

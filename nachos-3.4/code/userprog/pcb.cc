@@ -5,6 +5,7 @@ PCB::PCB(int pid) {
     this->parent = NULL;
     this->children = new List();
     this->thread = NULL;
+    this->exitStatus = -9999;
 }
 
 PCB::~PCB() {
@@ -29,3 +30,21 @@ void PCB::AddChild(PCB *pcb) {
 int PCB::RemoveChild(PCB *pcb) {
     return this->children->RemoveItem(pcb);
 }
+
+bool PCB::HasExited() {
+    return this->exitStatus == -9999 ? false : true;
+}
+
+void decspn(int arg) {
+    PCB *pcb = (PCB *)arg;
+    if (pcb->HasExited()) {
+        delete pcb;
+    }
+    else pcb->parent = NULL;
+}
+
+void PCB::DeleteExitedChildrenSetParentNull() {
+
+    children->Mapcar(decspn);
+}
+

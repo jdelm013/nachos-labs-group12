@@ -17,6 +17,9 @@ class PCB {
         Thread* thread;
         void AddChild(PCB *pcb);
         int RemoveChild(PCB *pcb);
+        int exitStatus;
+        bool HasExited();
+        void DeleteExitedChildrenSetParentNull();
 
     private:
         int internal_pid;
