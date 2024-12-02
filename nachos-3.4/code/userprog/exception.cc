@@ -27,6 +27,7 @@
 #include "system.h"
 #include "addrspace.h"
 #include "pcbmanager.h"
+#include "filesys.h"
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -144,12 +145,54 @@ int doKill(int pid) {
     return 0;
 }
 
+int doExec(char* filename) {
+    OpenFile* executable = fileSystem->Open(filename);
+    if (executable == NULL) {
+        return -1;
+    }
+
+    AddrSpace* space = new AddrSpace(executable);
+    if (!space->valid) {
+        DEBUG('a', "Invalid address space\n");
+        return -1;
+    }
+    
+    delete executable;
+
+    PCB* pcb = pcbManager->AllocatePCB();
+    space->pcb = pcb;
+    pcb->thread = currentThread;
+    pcb->parent = currentThread->space->pcb->parent;
+
+    // since we are replacing the addr space must remove it
+    delete currentThread->space;
+    currentThread->space = space;
+
+    space->InitRegisters();
+    space->RestoreState();
+
+    machine->Run();
+
+    return 0;
+}
+
 void incrementPC() {
     int oldPCReg = machine->ReadRegister(PCReg);
 
     machine->WriteRegister(PrevPCReg, oldPCReg);
     machine->WriteRegister(PCReg, oldPCReg + 4);
     machine->WriteRegister(NextPCReg, oldPCReg + 8);
+}
+
+char* translate(int virtAddr) {
+
+    unsigned int pageNumber = virtAddr / 128;
+    unsigned int pageOffset = virtAddr % 128;
+    unsigned int frameNumber = machine->pageTable[pageNumber].physicalPage;
+    unsigned int physicalAddr = frameNumber * 128 + pageOffset;
+    char* filename = &(machine->mainMemory[physicalAddr]);
+
+    return filename;
 }
 
 
@@ -202,6 +245,18 @@ void ExceptionHandler(ExceptionType which)
                 machine->WriteRegister(2, result);
 
                 // 10. Update counter of old process and return
+                incrementPC();
+                break;
+            }
+
+            case SC_Exec: { // must be enclosed in a block bc of variable declarations
+                printf(exceptionMsg, pid, "Exec");
+                DEBUG('a', "Exec, initiated by user program.\n");
+                int virtAddr = machine->ReadRegister(4);
+                char* fileName = translate(virtAddr);
+                int result = doExec(fileName);
+                
+                machine->WriteRegister(2, result);
                 incrementPC();
                 break;
             }

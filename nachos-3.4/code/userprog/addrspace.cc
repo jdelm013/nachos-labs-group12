@@ -62,6 +62,8 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace(OpenFile *executable)
 {
+    this->valid = true;
+
     NoffHeader noffH;
     unsigned int i, size;
 
@@ -69,7 +71,11 @@ AddrSpace::AddrSpace(OpenFile *executable)
     if ((noffH.noffMagic != NOFFMAGIC) && 
 		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
     	SwapHeader(&noffH);
-    ASSERT(noffH.noffMagic == NOFFMAGIC);
+
+    if(noffH.noffMagic != NOFFMAGIC) {
+        valid = false;
+        return;
+    }
 
 // how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
@@ -78,7 +84,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    if (numPages > mm->GetFreePageCount()) {
+        valid = false;
+        return;
+    }		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
@@ -135,6 +144,8 @@ unsigned int AddrSpace::GetNumPages() {
 AddrSpace::AddrSpace(AddrSpace* space)
 {
 
+    this->valid = true;
+
     // find how big source addr space is 
     unsigned int n = space->GetNumPages();
 
@@ -142,7 +153,10 @@ AddrSpace::AddrSpace(AddrSpace* space)
     mmLock->Acquire();
 
     //check if eough free mem to make copy, if not, fail
-    ASSERT(n <= mm->GetFreePageCount());
+     if (numPages > mm->GetFreePageCount()) {
+        valid = false;
+        return;
+    }	
 
     // create a new page table of same size as source addr space
     pageTable = new TranslationEntry[n];
