@@ -2,13 +2,18 @@
 
 PCB::PCB(int pid) {
     this->internal_pid = pid;
-    parent = NULL;
-    children = new List();
-    thread = NULL;
+    this->parent = NULL;
+    this->children = new List();
+    this->thread = NULL;
 }
 
 PCB::~PCB() {
-    delete thread;
+  //  if (children != NULL) {
+   //     delete children;
+  //  }
+    if (this->thread != NULL) {
+        delete this->thread;
+    }       
 }
 
 int PCB::pid() {
@@ -16,9 +21,11 @@ int PCB::pid() {
 }   
 
 void PCB::AddChild(PCB *pcb) {
-    children->Append(pcb);
+ 
+    pcbArray[pcb->pid()] = pcb;
+    this->children->Append((void *)pcb);
 }   
 
 int PCB::RemoveChild(PCB *pcb) {
-    return children->RemoveItem(pcb);
+    return this->children->RemoveItem(pcb);
 }

@@ -15,8 +15,10 @@
 
 #include "copyright.h"
 #include "filesys.h"
-#include "pcb.h"
 #include "translate.h"
+//#include "pcb.h"
+
+class PCB; //forward defintion else circular dependency
 
 #define UserStackSize		1024 	// increase this as necessary!
 
@@ -39,10 +41,8 @@ class AddrSpace {
     PCB* pcb; // pointer to the process that owns this process
 
   private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
-    unsigned int numPages;		// Number of pages in the virtual 
-					// address space
+    TranslationEntry *pageTable;	// Assume linear page table translation for now!
+    unsigned int numPages;		// Number of pages in the virtual address space
 };
 
 #endif // ADDRSPACE_H

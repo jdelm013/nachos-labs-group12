@@ -20,11 +20,14 @@ PCB* PCBManager::AllocatePCB() {
 
     int pid = bitmap->Find();
 
+    //printf("Allocating PCB for pid %d\n", pid);
+
     pcbManagerLock->Release();
 
-    ASSERT(pid != -1);
+    ASSERT(pid >= 0);
 
     pcbs[pid] = new PCB(pid);
+   // printf("Allocated PCB for pid %d\n", pcbs[pid]->pid());
     return pcbs[pid];
 }
 

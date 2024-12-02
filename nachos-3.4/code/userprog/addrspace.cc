@@ -148,9 +148,11 @@ AddrSpace::AddrSpace(AddrSpace* space)
     pageTable = new TranslationEntry[n];
 
     // make a copy of the PTEs but allocate new physical pages
+
+    // get parent page table
     TranslationEntry* ppt = space->GetPageTable();
 
-    for (unsigned int i = 0; i < numPages; i++) {
+    for (unsigned int i = 0; i < n; i++) {
 	    pageTable[i].virtualPage = ppt[i].virtualPage;
 	    pageTable[i].physicalPage = mm->AllocatePage();
 	    pageTable[i].valid = ppt[i].valid;
@@ -164,16 +166,17 @@ AddrSpace::AddrSpace(AddrSpace* space)
 
     }
 
-    mmLock->Release();
-   
-}
+    // set number of pages
+    numPages = n;
 
+    mmLock->Release();
+
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
 //----------------------------------------------------------------------
-
 AddrSpace::~AddrSpace()
 {
    delete pageTable;

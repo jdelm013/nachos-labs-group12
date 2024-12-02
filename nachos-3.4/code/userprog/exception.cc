@@ -24,6 +24,9 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+#include "system.h"
+#include "addrspace.h"
+#include "pcbmanager.h"
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -57,13 +60,90 @@ void doExit(int status, int pid) {
 }
 
 
+void childFunction(int pid) {
+
+    // 1. Restore the state of registers
+    currentThread->RestoreUserState();
+
+    // 2. Restore the page table for child
+    currentThread->space->RestoreState();
+
+    // print message for child creation (pid,  pcreg, currentThread->space->GetNumPages())
+    printf("Process [%d] Fork: start at address [%p] and [%d] pages memory\n", pid, machine->ReadRegister(PCReg), currentThread->space->GetNumPages());
+
+    machine->Run();
+
+}
+
+
+// ---------------------------------------------------------------------
+// doFork
+// 	Entry point into the Nachos kernel.  Called when a user program
+//  requests to fork a new process.
+// ----------------------------------------------------------------------
+int doFork(int funcAddr) {
+
+    // 1. Check if sufficient memory exists to create new process
+    // currentThread->space->GetNumPages() <= mm->GetFreePageCount()
+    // if check fails, return -1
+    if (currentThread->space->GetNumPages() > mm->GetFreePageCount()) {
+        return -1;
+    }
+
+    // 2. SaveUserState for the parent thread
+    currentThread->space->SaveState();
+
+    // 3. Create a new address space for child by copying parent address space
+    AddrSpace* childAddrSpace = new AddrSpace(currentThread->space);
+
+    // 4. Create a new thread for the child and set its addrSpace
+    Thread *childThread = new Thread("childThread");
+    childThread->space = childAddrSpace;
+
+    // 5. Create a PCB and associate the new Address and new Thread with PCB
+    PCB* childPCB = pcbManager->AllocatePCB();
+    childAddrSpace->pcb = childPCB;
+    childPCB->thread = childThread;
+    childPCB->parent = currentThread->space->pcb;
+
+    //currentThread->space->pcb->AddChild(childPCB);
+    childAddrSpace->pcb = childPCB;
+
+    // 6. Copy old register values to new register. Set pc reg value to value in r4. save new
+    //    register values to new AddrSpace.
+    machine->WriteRegister(PCReg, funcAddr);
+    machine->WriteRegister(PrevPCReg, funcAddr - 4);
+    machine->WriteRegister(NextPCReg, funcAddr + 4);
+    childThread->SaveUserState();
+
+    // 7. Use Thread::Fork(func, arg) to set new thread behavior: restore registers, restore
+    //    memory and put machine to run.
+    childThread->Fork(childFunction, childPCB->pid());
+
+    // 8. Restore register state of parent user-level process
+    currentThread->RestoreUserState();
+    
+
+    return childPCB->pid();
+
+}
+
+void incrementPC() {
+    int oldPCReg = machine->ReadRegister(PCReg);
+
+    machine->WriteRegister(PrevPCReg, oldPCReg);
+    machine->WriteRegister(PCReg, oldPCReg + 4);
+    machine->WriteRegister(NextPCReg, oldPCReg + 8);
+}
+
+
 void ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
     int pid = currentThread->GetPid();
     int status = 0;
 
-    const char *exceptionMsg = "System Call: [%d] invoked [%s]\n";
+    const char *exceptionMsg = "System Call: [%d] invoked %s.\n";
 
     if (which == SyscallException) {
         switch (type) {
@@ -79,6 +159,20 @@ void ExceptionHandler(ExceptionType which)
                 status = machine->ReadRegister(4);
                 doExit(status, pid);
                 break;
+
+            case SC_Fork: { // must be enclosed in a block bc of variable declarations
+                printf(exceptionMsg, pid, "Fork");
+                DEBUG('a', "Fork, initiated by user program.\n");
+                int funcAddr = machine->ReadRegister(4);
+                int result = doFork(funcAddr);
+                
+                // 9. Write new process pid to r2
+                machine->WriteRegister(2, result);
+                
+                // 10. Update counter of old process and return
+                incrementPC();
+                break;
+            }
 
             default:
                 printf("Unexpected user mode exception %d %d\n", which, type);

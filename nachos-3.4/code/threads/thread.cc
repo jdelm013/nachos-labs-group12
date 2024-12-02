@@ -48,6 +48,7 @@ Thread::Thread(const char* threadName)
 #endif
 }
 
+
 //----------------------------------------------------------------------
 // Thread::~Thread
 // 	De-allocate a thread.

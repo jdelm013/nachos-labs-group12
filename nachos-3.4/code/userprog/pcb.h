@@ -2,6 +2,7 @@
 #define PCB_H
 
 #include "list.h"
+#include "thread.h"
 
 class Thread;
 
@@ -19,7 +20,8 @@ class PCB {
 
     private:
         int internal_pid;
-
+        PCB* pcbArray[5];
+    
 };
 
 #endif // PCB_H
