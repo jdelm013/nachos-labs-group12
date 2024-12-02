@@ -69,7 +69,7 @@ void childFunction(int pid) {
     currentThread->space->RestoreState();
 
     // print message for child creation (pid,  pcreg, currentThread->space->GetNumPages())
-    printf("Process [%d] Fork: start at address [%p] and [%d] pages memory\n", pid, machine->ReadRegister(PCReg), currentThread->space->GetNumPages());
+    printf("Process [%d] Fork: start at address [%p] and [%d] pages memory\n", pid, (void *) machine->ReadRegister(PCReg), currentThread->space->GetNumPages());
 
     machine->Run();
 
@@ -128,6 +128,22 @@ int doFork(int funcAddr) {
 
 }
 
+int doKill(int pid) {
+    PCB* pcb = pcbManager->GetPCB(pid);
+    if (pcb == NULL) {
+        return -1;
+    }
+
+    // if the process is trying to kill itself
+    if (pcb->thread->GetPid() == currentThread->GetPid()) {
+        doExit(0, pid);
+        return 0;
+    }
+    // valid kill, pid exists, and not self, do cleanup and exit
+    pcb->thread->Finish();
+    return 0;
+}
+
 void incrementPC() {
     int oldPCReg = machine->ReadRegister(PCReg);
 
@@ -160,6 +176,22 @@ void ExceptionHandler(ExceptionType which)
                 doExit(status, pid);
                 break;
 
+            case SC_Yield:
+                printf(exceptionMsg, pid, "Yield");
+                DEBUG('a', "Yield, initiated by user program.\n");
+                currentThread->Yield();
+                incrementPC();
+                break;
+
+            case SC_Kill: { // must be enclosed in a block bc of variable declarations
+                printf(exceptionMsg, pid, "Kill");
+                DEBUG('a', "Kill, initiated by user program.\n");
+                int result = doKill(machine->ReadRegister(4));
+                machine->WriteRegister(2, result);
+                incrementPC();
+                break;
+            }
+
             case SC_Fork: { // must be enclosed in a block bc of variable declarations
                 printf(exceptionMsg, pid, "Fork");
                 DEBUG('a', "Fork, initiated by user program.\n");
@@ -168,11 +200,12 @@ void ExceptionHandler(ExceptionType which)
                 
                 // 9. Write new process pid to r2
                 machine->WriteRegister(2, result);
-                
+
                 // 10. Update counter of old process and return
                 incrementPC();
                 break;
             }
+
 
             default:
                 printf("Unexpected user mode exception %d %d\n", which, type);

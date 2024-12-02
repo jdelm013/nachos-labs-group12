@@ -31,6 +31,14 @@ PCB* PCBManager::AllocatePCB() {
     return pcbs[pid];
 }
 
+PCB* PCBManager::GetPCB(int pid) {
+    if (pid < 0) {
+        return NULL;
+    }
+
+    return pcbs[pid];
+}
+
 int PCBManager::DeallocatePCB(PCB *pcb) {
     int pid = pcb->pid();
     if (pid == -1) {
