@@ -184,15 +184,37 @@ void incrementPC() {
     machine->WriteRegister(NextPCReg, oldPCReg + 8);
 }
 
-char* translate(int virtAddr) {
+// char* translate(int virtAddr) {
 
-    unsigned int pageNumber = virtAddr / 128;
-    unsigned int pageOffset = virtAddr % 128;
-    unsigned int frameNumber = machine->pageTable[pageNumber].physicalPage;
-    unsigned int physicalAddr = frameNumber * 128 + pageOffset;
-    char* filename = &(machine->mainMemory[physicalAddr]);
+//     unsigned int pageNumber = virtAddr / 128;
+//     unsigned int pageOffset = virtAddr % 128;
+//     unsigned int frameNumber = machine->pageTable[pageNumber].physicalPage;
+//     unsigned int physicalAddr = frameNumber * 128 + pageOffset;
+//     char* filename = &(machine->mainMemory[physicalAddr]);
 
-    return filename;
+//     return filename;
+// }
+
+char* translate(int virtualAddr) {
+    int i = 0;
+    char* str = new char[256];
+    unsigned int physicalAddr = currentThread->space->Translate(virtualAddr);
+
+    // Need to get one byte at a time since the string may straddle multiple pages that are not guaranteed to be contiguous in the physicalAddr space
+    bcopy(&(machine->mainMemory[physicalAddr]),&str[i],1);
+    while(str[i] != '\0' && i != 256-1)
+    {
+        virtualAddr++;
+        i++;
+        physicalAddr = currentThread->space->Translate(virtualAddr);
+        bcopy(&(machine->mainMemory[physicalAddr]),&str[i],1);
+    }
+    if(i == 256-1 && str[i] != '\0')
+    {
+        str[i] = '\0';
+    }
+
+    return str;
 }
 
 

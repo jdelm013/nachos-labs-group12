@@ -40,6 +40,7 @@ class AddrSpace {
     TranslationEntry* GetPageTable(); //return pageTable
     bool valid; //check if addr space is valid
     PCB* pcb; // pointer to the process that owns this process
+    unsigned int Translate(unsigned int virtualAddr);
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation for now!
